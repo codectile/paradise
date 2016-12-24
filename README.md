@@ -1,4 +1,4 @@
-library written in C++ for hooking and memory manipulation(patching, reading, writing, signature scanning etc) on the go. It supports both x86 and x86-64 architecture.
+library for hooking and memory manipulation(patching, reading, writing, signature scanning etc) on the go. It supports both x86 and x86-64 architecture.
 
 ## Examples
 
