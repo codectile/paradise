@@ -12,24 +12,24 @@ namespace XMem
 		fastcall
 	};
 
-	inline BOOL UnProtect(void* memaddr, int length, unsigned long &dwOldProtect)
+	inline BOOL UnProtect(void* memaddr, int length, DWORD &dwOldProtect)
 	{
 		return VirtualProtect(memaddr, length, PAGE_EXECUTE_READWRITE, &dwOldProtect);
 	}
 
-	inline BOOL Protect(void* memaddr, int length, unsigned long dwOldProtect)
+	inline BOOL Protect(void* memaddr, int length, DWORD dwOldProtect)
 	{
 		return VirtualProtect(memaddr, length, dwOldProtect, NULL);
 	}
 
-	inline void Write(void* memaddr, void* bytes, int length)
+	template<typename T1, typename T2> inline void Write(T1 memaddr, T2 bytes, int length)
 	{
-		memcpy(memaddr, bytes, length);
+		memcpy((void*)memaddr, (void*)bytes, length);
 	}
 
-	template<typename T> inline void WriteSingle(void* memaddr, T value)
+	template<typename T1, typename T2> inline void WriteSingle(T1 memaddr, T2 value)
 	{
-		*(T*)memaddr = value;
+		*(T2*)memaddr = value;
 	}
 
 	template<typename T1, typename T2> inline void Read(T1 memaddr, T2 dest, int length)
@@ -88,29 +88,45 @@ namespace XMem
 		return NULL;
 	}
 
-	static int length_disassemble(void* pSource, int size)
+	template<typename T> static void* AllocPageWithin2GB(T pSource)
 	{
-		unsigned long prot;
+		MEMORY_BASIC_INFORMATION mbi;
+		for (size_t addr = (size_t)pSource; addr > (size_t)pSource - 0x80000000; addr = (size_t)mbi.BaseAddress - 1)
+		{
+			if (!VirtualQuery((LPCVOID)addr, &mbi, sizeof(mbi)))
+				return NULL;
+
+			if (mbi.State == MEM_FREE)
+				return VirtualAlloc(mbi.BaseAddress, 0x1000, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE); // allocate a page of 4 kilobytes
+		}
+		return NULL;
+	}
+
+	static int length_disassemble(void* pSource, int size, cs_mode mode)
+	{
+		DWORD prot;
 		XMem::UnProtect(pSource, size, prot);
 
 		csh handle;
 		cs_insn* insn;
 
 		size_t count;
-		if (cs_open(CS_ARCH_X86, CS_MODE_32, &handle) != CS_ERR_OK)
+
+		int jmp_size = mode == CS_MODE_32 ? 5 : 6;;
+		if (cs_open(CS_ARCH_X86, mode, &handle) != CS_ERR_OK)
 			return NULL;
-		count = cs_disasm(handle, (BYTE*)pSource, size, (unsigned long)pSource, 0, &insn);
+		count = cs_disasm(handle, (BYTE*)pSource, size, (size_t)pSource, 0, &insn);
 		if (count <= 0)
 			return NULL;
 		int length = 0;
 		int num_insn = count;
 		int i = 0;
-		while (count-- && length < 5)
+		while (count-- && length < jmp_size)
 			length += insn[i++].size;
 		cs_free(insn, num_insn);
 		cs_close(&handle);
 		XMem::Protect(pSource, size, prot);
-		return (length >= 5 ? length : NULL);
+		return (length >= jmp_size ? length : NULL);
 	}
 
 	template<typename R, typename T, typename... Args> inline R Call(calling_convention convention, T address, Args... args)
