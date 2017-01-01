@@ -1,4 +1,4 @@
-library for hooking and memory manipulation(patching, reading, writing, signature scanning etc) on the go. It supports both x86 and x86-64 architecture.
+x86/x64 hooking library
 
 ## Examples
 
@@ -85,6 +85,3 @@ int main()
     return 1;
 }
 ```
-
-## TODO
-1. add x64 support and more
