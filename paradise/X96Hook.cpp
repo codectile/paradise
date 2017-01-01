@@ -134,7 +134,6 @@ void* X64Hook::InstallHook()
 	*((BYTE*)func_address + 1) = 0x25;
 	*(DWORD*)((BYTE*)func_address + 2) = (DWORD)((SIZE_T)pContext - (SIZE_T)func_address + FIELD_OFFSET(X64Hook::Context, dst_ptr)) - 6;
 	pContext->dst_ptr = (SIZE_T)func_hook;
-	printf("offset: 0x%I64X\n", pContext->dst_ptr);
 	XMem::Protect(func_address, length, prot);
 	m_isdetoured = true;
 	return pContext->m_detrbytes;
