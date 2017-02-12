@@ -172,3 +172,44 @@ void X64Hook::RemoveHook()
 	pContext = NULL;
 	XMem::PatchNOP(m_obytes, sizeof(m_obytes));
 }
+
+// VTable hooking functions
+VTableHook::VTableHook()
+{
+	m_table = NULL;
+	func_addr = NULL;
+	func_hook = NULL;
+	id = -1;
+}
+
+VTableHook::~VTableHook()
+{
+	m_table = NULL;
+	func_addr = NULL;
+	func_hook = NULL;
+	id = -1;
+}
+
+void VTableHook::SetupHook(void* ptr, int index, void* func_ptr)
+{
+	m_table = *(void***)ptr;
+	id = index;
+	func_hook = func_ptr;
+	func_addr = m_table[id];
+}
+
+void VTableHook::InstallHook()
+{
+	DWORD prot;
+	XMem::UnProtect(&m_table[id], 8, prot);
+	m_table[id] = func_hook;
+	XMem::Protect(&m_table[id], 8, prot);
+}
+
+void VTableHook::RemoveHook()
+{
+	DWORD prot;
+	XMem::UnProtect(&m_table[id], 8, prot);
+	m_table[id] = func_addr;
+	XMem::Protect(&m_table[id], 8, prot);
+}
