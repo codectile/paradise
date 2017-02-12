@@ -47,3 +47,23 @@ private:
 	} *pContext;
 	bool m_isdetoured;
 };
+
+//VTable hooking class
+class VTableHook
+{
+public:
+	VTableHook();
+	~VTableHook();
+	void SetupHook(void* ptr, int index, void* func_ptr);
+	void InstallHook();
+	void RemoveHook();
+	template<typename R> inline R GetFunction(int index)
+	{
+		return m_table[index];
+	}
+private:
+	void** m_table;
+	void* func_addr;
+	int id;
+	void* func_hook;
+};
